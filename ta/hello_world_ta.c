@@ -32,6 +32,8 @@
 
 #include "hello_world_ta.h"
 
+size_t test;
+
 /*
  * Called when the instance of the TA is created. This is the first call in
  * the TA.
@@ -109,7 +111,7 @@ static TEE_Result inc_value(uint32_t param_types,
 	TEE_Param params[4])
 {
 	uint32_t exp_param_types = TEE_PARAM_TYPES(TEE_PARAM_TYPE_VALUE_INOUT,
-						   TEE_PARAM_TYPE_MEMREF_INOUT,
+						   TEE_PARAM_TYPE_NONE,
 						   TEE_PARAM_TYPE_NONE,
 						   TEE_PARAM_TYPE_NONE);
 
@@ -123,6 +125,25 @@ static TEE_Result inc_value(uint32_t param_types,
 	return TEE_SUCCESS;
 }
 
+
+static TEE_Result test_write(uint32_t param_types,
+                            TEE_Param params[4])
+{
+    uint32_t exp_param_types = TEE_PARAM_TYPES(TEE_PARAM_TYPE_MEMREF_INOUT,
+                                               TEE_PARAM_TYPE_NONE,
+                                               TEE_PARAM_TYPE_NONE,
+                                               TEE_PARAM_TYPE_NONE);
+
+    DMSG("has been called");
+    if (param_types != exp_param_types)
+        return TEE_ERROR_BAD_PARAMETERS;
+
+
+    DMSG("Do something");
+    test = params[0].memref.size;
+    DMSG("Did something");
+    return TEE_SUCCESS;
+}
 /*
  * Called when a TA is invoked. sess_ctx hold that value that was
  * assigned by TA_OpenSessionEntryPoint(). The rest of the paramters
@@ -137,6 +158,8 @@ TEE_Result TA_InvokeCommandEntryPoint(void __maybe_unused *sess_ctx,
 	switch (cmd_id) {
 	case TA_HELLO_WORLD_CMD_INC_VALUE:
 		return inc_value(param_types, params);
+    case TEST_WRITE:
+        return test_write(param_types, params);
 #if 0
 	case TA_HELLO_WORLD_CMD_XXX:
 		return ...

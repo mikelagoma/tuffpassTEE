@@ -76,7 +76,6 @@ int main(int argc, char *argv[])
 
 	/* Clear the TEEC_Operation struct */
 	memset(&op, 0, sizeof(op));
-    memset(&inputSM, 0, DATA_SIZE);
 
 
 	/*
@@ -105,7 +104,7 @@ int main(int argc, char *argv[])
      */
     /* Clear the TEEC_Operation struct */
     memset(&op, 0, sizeof(op));
-
+    memset(&inputSM, 'b', sizeof(inputSM));
     /*
      * SharedMemory input with key for password
      *
