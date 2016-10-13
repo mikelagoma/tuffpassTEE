@@ -126,13 +126,15 @@ static TEE_Result inc_value(uint32_t param_types,
 }
 
 
-static TEE_Result test_write(uint32_t param_types,
-                            TEE_Param params[4])
+static TEE_Result create_object(uint32_t param_types,
+        TEE_Param params[4])
 {
-    uint32_t exp_param_types = TEE_PARAM_TYPES(TEE_PARAM_TYPE_MEMREF_INOUT,
-                                               TEE_PARAM_TYPE_NONE,
-                                               TEE_PARAM_TYPE_NONE,
-                                               TEE_PARAM_TYPE_NONE);
+    uint32_t exp_param_types = TEE_PARAM_TYPES(TEE_PARAM_TYPE_MEMREF_INPUT,
+                                       TEE_PARAM_TYPE_VALUE_INOUT,
+                                       TEE_PARAM_TYPE_VALUE_INPUT,
+                                       TEE_PARAM_TYPE_MEMREF_INPUT);
+    TEE_Result res;
+    TEE_ObjectHandle o;
 
     DMSG("has been called");
     if (param_types != exp_param_types)
@@ -140,9 +142,44 @@ static TEE_Result test_write(uint32_t param_types,
 
 
     DMSG("Do something");
-    test = params[0].memref.size;
+
+
+    res = TEE_CreatePersistentObject(params[2].value.b,
+                                     params[0].memref.buffer, params[0].memref.size,
+                                     params[1].value.a,
+                                     (TEE_ObjectHandle)(uintptr_t)params[2].value.a,
+            params[3].memref.buffer, params[3].memref.size, &o);
+    params[1].value.b = (uintptr_t)o;
     DMSG("Did something");
-    return TEE_SUCCESS;
+    return res;
+}
+
+static TEE_Result open_object(uint32_t param_types,
+                                TEE_Param params[4])
+{
+    uint32_t exp_param_types = TEE_PARAM_TYPES(TEE_PARAM_TYPE_MEMREF_INPUT,
+                                               TEE_PARAM_TYPE_VALUE_INOUT,
+                                               TEE_PARAM_TYPE_VALUE_INPUT,
+                                               TEE_PARAM_TYPE_NONE);
+    TEE_Result res;
+    TEE_ObjectHandle o;
+
+    DMSG("has been called");
+    if (param_types != exp_param_types)
+        return TEE_ERROR_BAD_PARAMETERS;
+
+
+    DMSG("Do something");
+
+
+    res = TEE_OpenPersistentObject(params[2].value.a,
+                                   params[0].memref.buffer,
+                                   params[0].memref.size,
+                                   params[1].value.a, &o);
+
+    params[1].value.b = (uintptr_t)o;
+    DMSG("Did something");
+    return res;
 }
 /*
  * Called when a TA is invoked. sess_ctx hold that value that was
@@ -158,8 +195,10 @@ TEE_Result TA_InvokeCommandEntryPoint(void __maybe_unused *sess_ctx,
 	switch (cmd_id) {
 	case TA_HELLO_WORLD_CMD_INC_VALUE:
 		return inc_value(param_types, params);
-    case TEST_WRITE:
-        return test_write(param_types, params);
+    case CREATE_OBJECT:
+        return create_object(param_types, params);
+    case OPEN_OBJECT:
+        return open_object(param_types, params);
 #if 0
 	case TA_HELLO_WORLD_CMD_XXX:
 		return ...

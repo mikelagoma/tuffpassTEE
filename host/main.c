@@ -31,6 +31,10 @@
 
 /* OP-TEE TEE client API (built by optee_client) */
 #include <tee_client_api.h>
+//#include <ta_storage.h>
+#include <tee_api_defines.h>
+#include <tee_api_defines_extensions.h>
+#include <tee_api_types.h>
 
 /* To the the UUID (found the the TA's h-file(s)) */
 #include <hello_world_ta.h>
@@ -46,8 +50,22 @@ int main(int argc, char *argv[])
 	TEEC_UUID uuid = TA_HELLO_WORLD_UUID;
 	uint32_t err_origin;
 
-    TEEC_SharedMemory inputSM;
+    //TEEC_SharedMemory inputSM;
+
+    //Variables for fs_create (CreatePersistentObject)
+    static uint8_t id[] = {
+            0x01, 0x00
+    };
+    size_t id_size = sizeof(id);
     char data[DATA_SIZE];
+    strcpy(data,"testinput");
+    size_t data_size = sizeof(data);
+    uint32_t flags_create = TEE_DATA_FLAG_ACCESS_WRITE |
+            TEE_DATA_FLAG_ACCESS_READ |
+            TEE_DATA_FLAG_ACCESS_WRITE_META;
+
+    uint32_t flags_open = TEE_DATA_FLAG_ACCESS_WRITE_META;
+
 
 
 
@@ -82,9 +100,10 @@ int main(int argc, char *argv[])
 	 * Prepare the argument. Pass a value in the first parameter,
 	 * the remaining three parameters are unused.
 	 */
+
 	op.paramTypes = TEEC_PARAM_TYPES(TEEC_VALUE_INOUT, TEEC_NONE,
 					 TEEC_NONE, TEEC_NONE);
-    op.params[0].value.a = 43;
+    op.params[0].value.a = 45;
 
 	/*
 	 * TA_HELLO_WORLD_CMD_INC_VALUE is the actual function   in the TA to be
@@ -99,36 +118,69 @@ int main(int argc, char *argv[])
 	printf("TA incremented value to %d\n", op.params[0].value.a);
 
 
-    /*
-     *
-     */
     /* Clear the TEEC_Operation struct */
     memset(&op, 0, sizeof(op));
-    memset(&inputSM, 'b', sizeof(inputSM));
+    //memset(&inputSM, 'b', sizeof(inputSM));
     /*
      * SharedMemory input with key for password
-     *
+     * Failed attempt to manually send shared memory to TA
      */
     //data = argv[0];
-    strcpy(data,"testinput");
-    inputSM.buffer = data;
-
-    op.paramTypes = TEEC_PARAM_TYPES(TEEC_MEMREF_WHOLE, TEEC_NONE,
+    //strcpy(data,"testinput");
+    //inputSM.buffer = data;
+    /*op.paramTypes = TEEC_PARAM_TYPES(TEEC_MEMREF_WHOLE, TEEC_NONE,
                                      TEEC_NONE, TEEC_NONE);
-    op.params[0].memref.parent = &inputSM;
+    op.params[0].memref.parent = &inputSM;*/
 
     /*
-     * TA_HELLO_WORLD_CMD_INC_VALUE is the actual function   in the TA to be
-     * called.
+     * CreatePersistentObject Invoke
      */
-    printf("Writing to TEE storage\n");
-    res = TEEC_InvokeCommand(&sess, TEST_WRITE, &op,
+    op.paramTypes = TEEC_PARAM_TYPES(TEEC_MEMREF_TEMP_INPUT,
+                                     TEEC_VALUE_INOUT, TEEC_VALUE_INPUT,
+                                     TEEC_MEMREF_TEMP_INPUT);
+    op.params[0].tmpref.buffer = id;
+    op.params[0].tmpref.size = id_size;
+    op.params[1].value.a = flags_create;
+    op.params[1].value.b = 0;
+    op.params[2].value.a = 0;
+    op.params[2].value.b = TEE_STORAGE_PRIVATE; // storage_id
+    op.params[3].tmpref.buffer = data;
+    op.params[3].tmpref.size = data_size;
+    /*
+     * CREATE_OBJECT TA function to CreatePersistentObject
+     *//*
+    printf("Creating TEE persistent object\n");
+    res = TEEC_InvokeCommand(&sess, CREATE_OBJECT, &op,
                              &err_origin);
     if (res != TEEC_SUCCESS)
         errx(1, "TEEC_InvokeCommand failed with code 0x%x origin 0x%x",
              res, err_origin);
-    printf("Done\n");
+    printf("Done, returned object #%d\n",op.params[1].value.b);
 
+    /* Clear the TEEC_Operation struct */
+    memset(&op, 0, sizeof(op));
+
+    /*
+     * OpenPersistentObject Invoke
+     */
+    op.paramTypes = TEEC_PARAM_TYPES(TEEC_MEMREF_TEMP_INPUT,
+                                     TEEC_VALUE_INOUT, TEEC_VALUE_INPUT,
+                                     TEEC_NONE);
+    op.params[0].tmpref.buffer = id;
+    op.params[0].tmpref.size = id_size;
+    op.params[1].value.a = flags_open;
+    op.params[1].value.b = 0;
+    op.params[2].value.a = TEE_STORAGE_PRIVATE; //storage_id
+    /*
+     * TEST_WRITE TA function to CreatePersistentObject
+     */
+    printf("Opening TEE persistent object\n");
+    res = TEEC_InvokeCommand(&sess, OPEN_OBJECT, &op,
+                             &err_origin);
+    if (res != TEEC_SUCCESS)
+        errx(1, "TEEC_InvokeCommand failed with code 0x%x origin 0x%x",
+             res, err_origin);
+    printf("Done, returned object #%d\n",op.params[1].value.b);
 	/*
 	 * We're done with the TA, close the session and
 	 * destroy the context.

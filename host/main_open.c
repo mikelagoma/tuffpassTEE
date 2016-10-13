@@ -84,78 +84,6 @@ int main(int argc, char *argv[])
 		errx(1, "TEEC_Opensession failed with code 0x%x origin 0x%x",
 			res, err_origin);
 
-	/*
-	 * Execute a function in the TA by invoking it, in this case
-	 * we're incrementing a number.
-	 *
-	 * The value of command ID part and how the parameters are
-	 * interpreted is part of the interface provided by the TA.
-	 */
-
-	/* Clear the TEEC_Operation struct */
-	memset(&op, 0, sizeof(op));
-
-
-	/*
-	 * Prepare the argument. Pass a value in the first parameter,
-	 * the remaining three parameters are unused.
-	 */
-
-	op.paramTypes = TEEC_PARAM_TYPES(TEEC_VALUE_INOUT, TEEC_NONE,
-					 TEEC_NONE, TEEC_NONE);
-    op.params[0].value.a = 45;
-
-	/*
-	 * TA_HELLO_WORLD_CMD_INC_VALUE is the actual function   in the TA to be
-	 * called.
-	 */
-	printf("Invoking TA to increment %d\n", op.params[0].value.a);
-	res = TEEC_InvokeCommand(&sess, TA_HELLO_WORLD_CMD_INC_VALUE, &op,
-				 &err_origin);
-	if (res != TEEC_SUCCESS)
-		errx(1, "TEEC_InvokeCommand failed with code 0x%x origin 0x%x",
-			res, err_origin);
-	printf("TA incremented value to %d\n", op.params[0].value.a);
-
-
-    /* Clear the TEEC_Operation struct */
-    memset(&op, 0, sizeof(op));
-    //memset(&inputSM, 'b', sizeof(inputSM));
-    /*
-     * SharedMemory input with key for password
-     * Failed attempt to manually send shared memory to TA
-     */
-    //data = argv[0];
-    //strcpy(data,"testinput");
-    //inputSM.buffer = data;
-    /*op.paramTypes = TEEC_PARAM_TYPES(TEEC_MEMREF_WHOLE, TEEC_NONE,
-                                     TEEC_NONE, TEEC_NONE);
-    op.params[0].memref.parent = &inputSM;*/
-
-    /*
-     * CreatePersistentObject Invoke
-     */
-    op.paramTypes = TEEC_PARAM_TYPES(TEEC_MEMREF_TEMP_INPUT,
-                                     TEEC_VALUE_INOUT, TEEC_VALUE_INPUT,
-                                     TEEC_MEMREF_TEMP_INPUT);
-    op.params[0].tmpref.buffer = id;
-    op.params[0].tmpref.size = id_size;
-    op.params[1].value.a = flags_create;
-    op.params[1].value.b = 0;
-    op.params[2].value.a = 0;
-    op.params[2].value.b = TEE_STORAGE_PRIVATE; // storage_id
-    op.params[3].tmpref.buffer = data;
-    op.params[3].tmpref.size = data_size;
-    /*
-     * CREATE_OBJECT TA function to CreatePersistentObject
-     */
-    printf("Creating TEE persistent object\n");
-    res = TEEC_InvokeCommand(&sess, CREATE_OBJECT, &op,
-                             &err_origin);
-    if (res != TEEC_SUCCESS)
-        errx(1, "TEEC_InvokeCommand failed with code 0x%x origin 0x%x",
-             res, err_origin);
-    printf("Done, returned object #%d\n",op.params[1].value.b);
 
     /* Clear the TEEC_Operation struct */
     memset(&op, 0, sizeof(op));
@@ -170,9 +98,9 @@ int main(int argc, char *argv[])
     op.params[0].tmpref.size = id_size;
     op.params[1].value.a = flags_open;
     op.params[1].value.b = 0;
-    op.params[2].value.a = TEE_STORAGE_PRIVATE; //storage_id
+    op.params[2].value.a = TEE_STORAGE_PRIVATE; // = 1
     /*
-     * TEST_WRITE TA function to CreatePersistentObject
+     * OPEN_OBJECT TA function to OpenPersistentObject
      */
     printf("Opening TEE persistent object\n");
     res = TEEC_InvokeCommand(&sess, OPEN_OBJECT, &op,

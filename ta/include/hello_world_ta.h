@@ -34,6 +34,7 @@
 
 /* The Trusted Application Function ID(s) implemented in this TA */
 #define TA_HELLO_WORLD_CMD_INC_VALUE	0
-#define TEST_WRITE	1
+#define CREATE_OBJECT					1
+#define OPEN_OBJECT						2
 
 #endif /*TA_HELLO_WORLD_H*/
